@@ -1,6 +1,12 @@
 (function () {
   "use strict";
 
+  // Force page to load at the top, ignoring browser history scroll restoring
+  if ('scrollRestoration' in history) {
+    history.scrollRestoration = 'manual';
+  }
+  window.scrollTo(0, 0);
+
   const navToggle = document.querySelector(".nav-toggle");
   const siteNav = document.querySelector(".site-nav");
   const navLinks = Array.from(document.querySelectorAll(".site-nav a[href^='#']"));
@@ -141,5 +147,29 @@
     };
 
     tick();
+  }
+
+  // --- Contact Form Submission Simulation ---
+  const contactForm = document.querySelector(".contact-form");
+  if (contactForm) {
+    contactForm.addEventListener("submit", function (e) {
+      // Since this is a static site/portfolio, we simulate the submission
+      e.preventDefault();
+
+      const loading = contactForm.querySelector(".loading");
+      const sentMessage = contactForm.querySelector(".sent-message");
+      const errorMessage = contactForm.querySelector(".error-message");
+
+      if (loading) loading.classList.add("d-block");
+      if (sentMessage) sentMessage.classList.remove("d-block");
+      if (errorMessage) errorMessage.classList.remove("d-block");
+
+      // Simulate a small delay for "loading"
+      setTimeout(() => {
+        if (loading) loading.classList.remove("d-block");
+        if (sentMessage) sentMessage.classList.add("d-block");
+        contactForm.reset(); // Clear the form after submission
+      }, 2000);
+    });
   }
 })();
