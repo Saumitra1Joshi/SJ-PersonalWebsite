@@ -1,20 +1,21 @@
 (function () {
   "use strict";
 
-  // Force page to load at the top, ignoring browser history scroll restoring
-  if ('scrollRestoration' in history) {
-    history.scrollRestoration = 'manual';
+  if ("scrollRestoration" in history) {
+    history.scrollRestoration = "manual";
   }
   window.scrollTo(0, 0);
 
   const navToggle = document.querySelector(".nav-toggle");
   const siteNav = document.querySelector(".site-nav");
   const navLinks = Array.from(document.querySelectorAll(".site-nav a[href^='#']"));
-  const cursorGlow = document.querySelector(".cursor-glow");
   const revealItems = document.querySelectorAll(".reveal");
   const tiltCards = document.querySelectorAll(".tilt-card");
   const spotlightCards = document.querySelectorAll(".spotlight-card");
   const typeTarget = document.querySelector(".type-target");
+  const contactForm = document.querySelector(".contact-form");
+  const prefersFinePointer = window.matchMedia("(pointer:fine)").matches;
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   const setNavState = (open) => {
     if (!navToggle || !siteNav) return;
@@ -40,76 +41,71 @@
     }
   });
 
-  if (cursorGlow && window.matchMedia("(pointer:fine)").matches) {
-    window.addEventListener("pointermove", (event) => {
-      cursorGlow.style.transform = `translate(${event.clientX}px, ${event.clientY}px) translate(-50%, -50%)`;
-    });
-  } else if (cursorGlow) {
-    cursorGlow.style.display = "none";
-  }
-
-  const revealObserver = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
+  if ("IntersectionObserver" in window) {
+    const revealObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
           entry.target.classList.add("is-visible");
           revealObserver.unobserve(entry.target);
-        }
-      });
-    },
-    { threshold: 0.16, rootMargin: "0px 0px -8% 0px" }
-  );
-
-  revealItems.forEach((item) => revealObserver.observe(item));
-
-  const sectionObserver = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (!entry.isIntersecting) return;
-        const id = entry.target.getAttribute("id");
-        navLinks.forEach((link) => {
-          link.classList.toggle("is-active", link.getAttribute("href") === `#${id}`);
         });
+      },
+      { threshold: 0.12, rootMargin: "0px 0px -8% 0px" }
+    );
+
+    revealItems.forEach((item) => revealObserver.observe(item));
+
+    const sectionObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          const id = entry.target.getAttribute("id");
+          navLinks.forEach((link) => {
+            link.classList.toggle("is-active", link.getAttribute("href") === `#${id}`);
+          });
+        });
+      },
+      { threshold: 0.35 }
+    );
+
+    document.querySelectorAll("main section[id]").forEach((section) => {
+      sectionObserver.observe(section);
+    });
+  } else {
+    revealItems.forEach((item) => item.classList.add("is-visible"));
+  }
+
+  if (prefersFinePointer && !prefersReducedMotion) {
+    tiltCards.forEach((card) => {
+      const reset = () => {
+        card.style.transform = "";
+      };
+
+      card.addEventListener("pointermove", (event) => {
+        const rect = card.getBoundingClientRect();
+        const x = (event.clientX - rect.left) / rect.width;
+        const y = (event.clientY - rect.top) / rect.height;
+        const rotateY = (x - 0.5) * 7;
+        const rotateX = (0.5 - y) * 7;
+        card.style.transform = `perspective(1200px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-4px)`;
       });
-    },
-    { threshold: 0.45 }
-  );
 
-  document.querySelectorAll("main section[id]").forEach((section) => {
-    sectionObserver.observe(section);
-  });
-
-  tiltCards.forEach((card) => {
-    if (!window.matchMedia("(pointer:fine)").matches) return;
-
-    const reset = () => {
-      card.style.transform = "";
-    };
-
-    card.addEventListener("pointermove", (event) => {
-      const rect = card.getBoundingClientRect();
-      const x = (event.clientX - rect.left) / rect.width;
-      const y = (event.clientY - rect.top) / rect.height;
-      const rotateY = (x - 0.5) * 10;
-      const rotateX = (0.5 - y) * 10;
-      card.style.transform = `perspective(1200px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-4px)`;
+      card.addEventListener("pointerleave", reset);
+      card.addEventListener("pointercancel", reset);
     });
 
-    card.addEventListener("pointerleave", reset);
-    card.addEventListener("pointercancel", reset);
-  });
-
-  spotlightCards.forEach((card) => {
-    card.addEventListener("pointermove", (event) => {
-      const rect = card.getBoundingClientRect();
-      const x = ((event.clientX - rect.left) / rect.width) * 100;
-      const y = ((event.clientY - rect.top) / rect.height) * 100;
-      card.style.setProperty("--mx", `${x}%`);
-      card.style.setProperty("--my", `${y}%`);
+    spotlightCards.forEach((card) => {
+      card.addEventListener("pointermove", (event) => {
+        const rect = card.getBoundingClientRect();
+        const x = ((event.clientX - rect.left) / rect.width) * 100;
+        const y = ((event.clientY - rect.top) / rect.height) * 100;
+        card.style.setProperty("--mx", `${x}%`);
+        card.style.setProperty("--my", `${y}%`);
+      });
     });
-  });
+  }
 
-  if (typeTarget) {
+  if (typeTarget && !prefersReducedMotion) {
     const words = (typeTarget.dataset.words || "")
       .split(",")
       .map((word) => word.trim())
@@ -125,19 +121,19 @@
 
       if (!deleting && charIndex < currentWord.length) {
         charIndex += 1;
-        setTimeout(tick, 75);
+        setTimeout(tick, 70);
         return;
       }
 
       if (!deleting && charIndex === currentWord.length) {
         deleting = true;
-        setTimeout(tick, 1400);
+        setTimeout(tick, 1200);
         return;
       }
 
       if (deleting && charIndex > 0) {
         charIndex -= 1;
-        setTimeout(tick, 42);
+        setTimeout(tick, 38);
         return;
       }
 
@@ -147,14 +143,14 @@
     };
 
     tick();
+  } else if (typeTarget) {
+    const firstWord = (typeTarget.dataset.words || "").split(",")[0];
+    typeTarget.textContent = firstWord ? firstWord.trim() : "";
   }
 
-  // --- Contact Form Submission Simulation ---
-  const contactForm = document.querySelector(".contact-form");
   if (contactForm) {
-    contactForm.addEventListener("submit", function (e) {
-      // Since this is a static site/portfolio, we simulate the submission
-      e.preventDefault();
+    contactForm.addEventListener("submit", (event) => {
+      event.preventDefault();
 
       const loading = contactForm.querySelector(".loading");
       const sentMessage = contactForm.querySelector(".sent-message");
@@ -164,12 +160,11 @@
       if (sentMessage) sentMessage.classList.remove("d-block");
       if (errorMessage) errorMessage.classList.remove("d-block");
 
-      // Simulate a small delay for "loading"
       setTimeout(() => {
         if (loading) loading.classList.remove("d-block");
         if (sentMessage) sentMessage.classList.add("d-block");
-        contactForm.reset(); // Clear the form after submission
-      }, 2000);
+        contactForm.reset();
+      }, 1200);
     });
   }
 })();
